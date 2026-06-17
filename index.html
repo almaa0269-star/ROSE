@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Своя Игра</title>
+<style>
+  :root {
+    --svoya-blue: #000080;
+    --svoya-light-blue: #0000cd;
+    --svoya-gold: #ffd700;
+    --svoya-white: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    background: radial-gradient(circle, #0000a0 0%, #000040 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--svoya-gold);
+  }
+
+  h1 {
+    text-align: center;
+    color: var(--svoya-gold);
+    text-transform: uppercase;
+    font-size: 3em;
+    margin-bottom: 20px;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5), 3px 3px 0 #000;
+    letter-spacing: 3px;
+  }
+  h3 {
+    text-align: center;
+    color: var(--svoya-gold);
+    text-transform: uppercase;
+    font-size: 1em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5), 3px 3px 0 #000;
+    letter-spacing: 3px;
+  }
+
+  .score-board {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+
+  .player {
+    background: var(--svoya-blue);
+    border: 3px solid #444;
+    color: var(--svoya-white);
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 1.3em;
+    text-align: center;
+    transition: all 0.3s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    min-width: 180px;
+  }
+
+  .player.active {
+    border-color: var(--svoya-gold);
+    color: var(--svoya-gold);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), inset 0 0 10px rgba(255, 215, 0, 0.1);
+    transform: scale(1.05);
+  }
+
+  .player-name {
+    display: block;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    color: #aaa;
+  }
+
+  .player.active .player-name {
+    color: var(--svoya-gold);
+  }
+
+  .player-score {
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #000;
+    padding: 8px;
+    border-radius: 10px;
+    border: 4px solid var(--svoya-gold);
+  }
+
+  .category {
+    background: var(--svoya-blue);
+    color: var(--svoya-gold);
+    padding: 20px 10px;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #000050;
+    line-height: 1.2;
+  }
+
+  .cell {
+    background: var(--svoya-light-blue);
+    color: var(--svoya-gold);
+    padding: 25px 10px;
+    text-align: center;
+    font-size: 2.2em;
+    font-weight: bold;
+    cursor: pointer;
+    border: 2px solid #000050;
+    transition: all 0.2s;
+    font-family: 'Impact', sans-serif;
+    text-shadow: 2px 2px 0 #000;
+  }
+
+  .cell:hover:not(.used) {
+    background: #1e3a8a;
+    color: var(--svoya-white);
+    text-shadow: 0 0 15px var(--svoya-gold);
+    transform: scale(1.02);
+    z-index: 2;
+  }
+
+  .cell.used {
+    background: #000030;
+    color: #333;
+    cursor: default;
+    text-shadow: none;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+  }
+
+  .modal.show { display: flex; }
+
+  .modal-content {
+    background: var(--svoya-blue);
+    border: 4px solid var(--svoya-gold);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+    animation: pop 0.3s ease-out;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .question-emoji {
+    font-size: 4em;
+    margin: 10px 0;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+  }
+
+  .question-text {
+    font-size: 1.6em;
+    color: var(--svoya-white);
+    margin: 20px 0;
+    line-height: 1.3;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+  }
+
+  .answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 25px;
+  }
+
+  .answer-btn {
+    background: var(--svoya-light-blue);
+    color: var(--svoya-gold);
+    border: 3px solid var(--svoya-gold);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: 'Arial Black', sans-serif;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .answer-btn:hover:not(:disabled) {
+    background: var(--svoya-gold);
+    color: var(--svoya-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+  }
+
+  .answer-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  .answer-btn.correct {
+    background: #2ed573 !important;
+    color: white !important;
+    border-color: #2ed573 !important;
+  }
+
+  .answer-btn.wrong {
+    background: #ff4757 !important;
+    color: white !important;
+    border-color: #ff4757 !important;
+  }
+
+  .result {
+    font-size: 1.8em;
+    margin: 25px 0 15px;
+    font-weight: bold;
+    font-family: 'Impact', sans-serif;
+    letter-spacing: 1px;
+  }
+
+  .result.correct { color: #2ed573; text-shadow: 0 0 10px rgba(46, 213, 115, 0.5); }
+  .result.wrong { color: #ff4757; text-shadow: 0 0 10px rgba(255, 71, 87, 0.5); }
+
+  .btn-close {
+    background: var(--svoya-gold);
+    color: var(--svoya-blue);
+    border: none;
+    padding: 12px 35px;
+    border-radius: 8px;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: 'Arial Black', sans-serif;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btn-close:hover {
+    background: #fff;
+    transform: scale(1.05);
+  }
+
+  .reset-btn {
+    display: block;
+    margin: 30px auto;
+    background: transparent;
+    color: var(--svoya-gold);
+    border: 3px solid var(--svoya-gold);
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: 'Arial Black', sans-serif;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    background: var(--svoya-gold);
+    color: var(--svoya-blue);
+  }
+
+  @media (max-width: 768px) {
+    .board { gap: 4px; padding: 4px; }
+    .category { font-size: 0.8em; padding: 10px 5px; }
+    .cell { font-size: 1.5em; padding: 15px 5px; }
+    h1 { font-size: 2em; }
+    .answers { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🌟 Своя Игра 🌟</h1><h3>
+<p class="center-text">правила игры</p>
+<p class="center-text">ты выбераешь тему и стотмость вопроса,отвечаешь правильно очки отвечаешь не правиоьно теряешоь очки,кто наберет больше очков в конце раунда тот и победил </p></h3>
+<div class="score-board" id="scoreBoard"></div>
+
+<div class="board" id="board"></div>
+
+<button class="reset-btn" onclick="resetGame()">🔄 Новая игра</button>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="question-emoji" id="qEmoji"></div>
+    <div class="question-text" id="qText"></div>
+    <div class="answers" id="answers"></div>
+    <div class="result" id="result"></div>
+    <button class="btn-close" id="closeBtn" style="display:none" onclick="closeModal()">Далее ➡️</button>
+  </div>
+</div>
+
+<script>
+const categories = [
+  {
+    name: "Mемы",
+    questions: [
+      { points: 100, emoji: "", text: "какая самая лучшая группа?", answers: ["розовые", "розочки", "розовята", "розовые"], correct: 9 },
+      { points: 67, emoji: "", text: "67?", answers: ["77", "66", "67", "76"], correct: 2 },
+      { points: 300, emoji: "", text: "1000-7?", answers: ["гуль", "993", "хз", "кз"], correct: 1 },
+      { points: 400, emoji: "", text: "300*400?", answers: ["12000", "340000", "ЛЯЯЯЯМ ДВЕСТИ", "1234567"], correct: 2 },
+      { points: 500, emoji: "", text: "дима?", answers: ["дима", "димон", "лямон", "ЛЯЯЯМ двести"], correct: 3 }
+    ]
+  },
+  {
+    name: "🐾 Животные",
+    questions: [
+      { points: 100, emoji: "🐶", text: "Кто говорит «Гав-гав»?", answers: ["Кошка", "Собака", "Корова", "Утка"], correct: 1 },
+      { points: 200, emoji: "🐮", text: "Кто даёт нам молоко?", answers: ["Свинья", "Лошадь", "Корова", "Овца"], correct: 2 },
+      { points: 300, emoji: "🐘", text: "У кого длинный хобот?", answers: ["Жираф", "Лев", "Слон", "Медведь"], correct: 2 },
+      { points: 400, emoji: "🐸", text: "Кто квакает и живёт у пруда?", answers: ["Лягушка", "Змея", "Черепаха", "Рыба"], correct: 0 },
+      { points: 500, emoji: "🦁", text: "Кто царь зверей с большой гривой?", answers: ["Тигр", "Лев", "Волк", "Медведь"], correct: 1 }
+    ]
+  },
+  
+  {
+    name: "🔢 Считаем",
+    questions: [
+      { points: 100, emoji: "✌️", text: "Сколько у тебя рук?", answers: ["1", "2", "3", "4"], correct: 1 },
+      { points: 200, emoji: "👀", text: "Сколько глаз у человека?", answers: ["1", "2", "3", "4"], correct: 1 },
+      { points: 300, emoji: "🐱", text: "Сколько лап у кошки?", answers: ["2", "3", "4", "5"], correct: 2 },
+      { points: 400, emoji: "🖐️", text: "Сколько пальцев на одной руке?", answers: ["3", "4", "5", "6"], correct: 2 },
+      { points: 500, emoji: "🚗", text: "Сколько колёс у машины?", answers: ["2", "3", "4", "6"], correct: 2 }
+    ]
+  },
+  {
+    name: "🍎 Фрукты",
+    questions: [
+      { points: 100, emoji: "🍎", text: "Что это за фрукт — красный и круглый?", answers: ["Яблоко", "Огурец", "Морковь", "Хлеб"], correct: 0 },
+      { points: 200, emoji: "🍌", text: "Какой фрукт длинный и жёлтый?", answers: ["Груша", "Банан", "Яблоко", "Арбуз"], correct: 1 },
+      { points: 300, emoji: "🍉", text: "Какая ягода большая, зелёная снаружи и красная внутри?", answers: ["Клубника", "Арбуз", "Виноград", "Малина"], correct: 1 },
+      { points: 400, emoji: "🍊", text: "Какой фрукт оранжевый, круглый и похож на солнце?", answers: ["Лимон", "Апельсин", "Яблоко", "Слива"], correct: 1 },
+      { points: 500, emoji: "🍇", text: "Какие ягоды растут гроздьями?", answers: ["Виноград", "Малина", "Смородина", "Вишня"], correct: 0 }
+    ]
+  },
+  {
+    name: "🌞 Природа",
+    questions: [
+      { points: 100, emoji: "☀️", text: "Что светит на небе днём?", answers: ["Луна", "Звёзды", "Солнце", "Облака"], correct: 2 },
+      { points: 200, emoji: "🌙", text: "Что светит на небе ночью?", answers: ["Солнце", "Луна", "Радуга", "Ветер"], correct: 1 },
+      { points: 300, emoji: "❄️", text: "Что падает с неба зимой белыми хлопьями?", answers: ["Дождь", "Листья", "Снег", "Цветы"], correct: 2 },
+      { points: 400, emoji: "🌈", text: "Что появляется на небе после дождя?", answers: ["Радуга", "Молния", "Туча", "Гром"], correct: 0 },
+      { points: 500, emoji: "🌸", text: "В какое время года цветут цветы?", answers: ["Зима", "Весна", "Осень", "Лето"], correct: 1 }
+    ]
+  }
+];
+
+let players = [
+  { name: "Игрок 1", score: 0 },
+  { name: "Игрок 2", score: 0 }
+];
+let currentPlayer = 0;
+let usedCells = new Set();
+
+function renderScoreBoard() {
+  const sb = document.getElementById('scoreBoard');
+  sb.innerHTML = players.map((p, i) =>
+    `<div class="player ${i === currentPlayer ? 'active' : ''}">
+      <span class="player-name">${p.name}</span>
+      <span class="player-score">${p.score}</span>
+    </div>`
+  ).join('');
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  let html = '';
+  categories.forEach(cat => {
+    html += `<div class="category">${cat.name}</div>`;
+  });
+  for (let row = 0; row < 5; row++) {
+    categories.forEach((cat, col) => {
+      const key = `${col}-${row}`;
+      const used = usedCells.has(key);
+      html += `<div class="cell ${used ? 'used' : ''}" onclick="openQuestion(${col}, ${row})">
+        ${used ? '✓' : cat.questions[row].points}
+      </div>`;
+    });
+  }
+  board.innerHTML = html;
+}
+
+function openQuestion(col, row) {
+  const key = `${col}-${row}`;
+  if (usedCells.has(key)) return;
+  
+  const q = categories[col].questions[row];
+  document.getElementById('qEmoji').textContent = q.emoji;
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = 'result';
+  document.getElementById('closeBtn').style.display = 'none';
+  
+  const answersDiv = document.getElementById('answers');
+  answersDiv.innerHTML = q.answers.map((ans, i) =>
+    `<button class="answer-btn" onclick="checkAnswer(${col}, ${row}, ${i})">${ans}</button>`
+  ).join('');
+  
+  document.getElementById('modal').classList.add('show');
+}
+
+function checkAnswer(col, row, chosen) {
+  const q = categories[col].questions[row];
+  const key = `${col}-${row}`;
+  const buttons = document.querySelectorAll('.answer-btn');
+  
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) {
+      btn.classList.add('correct');
+    } else if (i === chosen) {
+      btn.classList.add('wrong');
+    }
+  });
+  
+  const result = document.getElementById('result');
+  if (chosen === q.correct) {
+    players[currentPlayer].score += q.points;
+    result.textContent = `✅ ПРАВИЛЬНО! +${q.points}`;
+    result.className = 'result correct';
+  } else {
+    players[currentPlayer].score -= q.points;
+    result.textContent = `❌ НЕПРАВИЛЬНО! -${q.points}`;
+    result.className = 'result wrong';
+  }
+  
+  usedCells.add(key);
+  
+  // 🔄 АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ НА СЛЕДУЮЩЕГО ИГРОКА
+  currentPlayer = (currentPlayer + 1) % players.length;
+  
+  renderScoreBoard();
+  document.getElementById('closeBtn').style.display = 'inline-block';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  renderBoard();
+  
+  if (usedCells.size === 25) {
+    setTimeout(() => {
+      const winner = players[0].score > players[1].score ? players[0].name :
+                     players[1].score > players[0].score ? players[1].name : 'Ничья';
+      alert(`🏆 ИГРА ОКОНЧЕНА! 🏆\n\n${players[0].name}: ${players[0].score} очков\n${players[1].name}: ${players[1].score} очков\n\n🎉 Победитель: ${winner}!`);
+    }, 300);
+  }
+}
+
+function resetGame() {
+  if(confirm('Начать новую игру? Счёт будет обнулён.')) {
+    players = [
+      { name: "Игрок 1", score: 0 },
+      { name: "Игрок 2", score: 0 }
+    ];
+    currentPlayer = 0;
+    usedCells = new Set();
+    renderScoreBoard();
+    renderBoard();
+  }
+}
+
+// Инициализация
+renderScoreBoard();
+renderBoard();
+</script>
+
+</body>
+</html>
