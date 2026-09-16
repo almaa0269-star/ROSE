@@ -15,15 +15,50 @@
       touch-action: none;
     }
 
+    #gameFrame {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(100vw, calc(100vh * 4 / 3));
+      height: min(100vh, calc(100vw * 3 / 4));
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: #10131a;
+      box-shadow: 0 0 40px rgba(0,0,0,.55);
+    }
+
     canvas {
       display: block;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       background:
         radial-gradient(circle at 20% 20%, rgba(255,255,255,0.07), transparent 30%),
         radial-gradient(circle at 80% 25%, rgba(255,255,255,0.04), transparent 25%),
         linear-gradient(180deg, #1c2330 0%, #121822 55%, #0d1219 100%);
       cursor: crosshair;
+    }
+
+    .modeRow {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .normalBtn {
+      background: linear-gradient(180deg, #45a8ff 0%, #2469d8 100%);
+      box-shadow: 0 10px 24px rgba(36,105,216,.28);
+    }
+
+    .hellBtn {
+      background: linear-gradient(180deg, #ff5a30 0%, #b61414 100%);
+      box-shadow: 0 10px 24px rgba(182,20,20,.35);
+    }
+
+    .hellText {
+      color: #ff765e;
+      font-weight: 800;
     }
 
     .overlay {
@@ -100,7 +135,9 @@
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
+  <div id="gameFrame">
+    <canvas id="game"></canvas>
+  </div>
 
   <button class="fullscreen" id="fsBtn">⛶ Полный экран</button>
 
@@ -108,11 +145,14 @@
     <div class="panel">
       <div class="title">FRUIT NINJA</div>
       <p class="subtitle">
-        Режь фрукты мышкой или пальцем.<br>
-        Не пропускай фрукты и не режь бомбы.
+        Поле игры — <b>4:3</b>. Фрукты теперь летят медленнее.<br>
+        Выбери сложность:
       </p>
-      <button id="startBtn">Играть</button>
-      <div class="hint">После запуска можно нажать F11 или кнопку «Полный экран».</div>
+      <div class="modeRow">
+        <button class="normalBtn" id="normalBtn">Обычная</button>
+        <button class="hellBtn" id="hellBtn">🔥 АД</button>
+      </div>
+      <div class="hint"><span class="hellText">АД</span>: фруктов и бомб намного больше, но скорость всё равно ниже старой версии.</div>
     </div>
   </div>
 
@@ -120,7 +160,10 @@
     <div class="panel">
       <div class="title">Игра окончена</div>
       <p class="subtitle" id="finalStats">Счёт: 0</p>
-      <button id="restartBtn">Играть снова</button>
+      <div class="modeRow">
+        <button id="restartBtn">Играть снова</button>
+        <button class="normalBtn" id="menuBtn">Выбрать сложность</button>
+      </div>
     </div>
   </div>
 
@@ -131,23 +174,26 @@
     const startOverlay = document.getElementById('startOverlay');
     const gameOverOverlay = document.getElementById('gameOverOverlay');
     const finalStats = document.getElementById('finalStats');
-    const startBtn = document.getElementById('startBtn');
+    const normalBtn = document.getElementById('normalBtn');
+    const hellBtn = document.getElementById('hellBtn');
     const restartBtn = document.getElementById('restartBtn');
+    const menuBtn = document.getElementById('menuBtn');
     const fsBtn = document.getElementById('fsBtn');
 
     let W = 0, H = 0, DPR = 1;
+    let gameMode = 'normal';
 
     function resize() {
       DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-      W = window.innerWidth;
-      H = window.innerHeight;
+      const rect = canvas.getBoundingClientRect();
+      W = rect.width;
+      H = rect.height;
       canvas.width = Math.floor(W * DPR);
       canvas.height = Math.floor(H * DPR);
-      canvas.style.width = W + 'px';
-      canvas.style.height = H + 'px';
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     }
     window.addEventListener('resize', resize);
+    document.addEventListener('fullscreenchange', () => setTimeout(resize, 80));
     resize();
 
     const FRUITS = [
@@ -167,7 +213,7 @@
     let lastTime = 0;
     let spawnTimer = 0;
     let difficultyTimer = 0;
-    let spawnInterval = 850;
+    let spawnInterval = 1100;
     let speedBoost = 0;
 
     const items = [];
@@ -200,12 +246,12 @@
 
     function resetGame() {
       score = 0;
-      lives = 3;
+      lives = gameMode === 'hell' ? 2 : 3;
       running = true;
       lastTime = 0;
       spawnTimer = 0;
       difficultyTimer = 0;
-      spawnInterval = 850;
+      spawnInterval = gameMode === 'hell' ? 520 : 1100;
       speedBoost = 0;
       items.length = 0;
       particles.length = 0;
@@ -214,19 +260,29 @@
     }
 
     function spawnItem() {
-      const isBomb = Math.random() < 0.16;
-      const radius = isBomb ? rand(24, 30) : rand(26, 36);
-      const x = rand(80, Math.max(81, W - 80));
-      const y = H + radius + rand(0, 40);
-      const vx = rand(-190, 190);
-      const vy = -(rand(770, 980) + speedBoost);
+      const motionScale = Math.max(0.7, H / 720);
+      const sizeScale = Math.max(0.8, Math.min(1.35, H / 720));
+
+      // В обоих режимах скорость ниже исходной версии.
+      // АД сложнее в первую очередь количеством фруктов и бомб.
+      const hell = gameMode === 'hell';
+      const bombChance = hell ? 0.26 : 0.12;
+      const isBomb = Math.random() < bombChance;
+      const radius = (isBomb ? rand(24, 30) : rand(26, 36)) * sizeScale;
+      const sideMargin = Math.max(60, radius + 18);
+      const x = rand(sideMargin, Math.max(sideMargin + 1, W - sideMargin));
+      const y = H + radius + rand(0, 35) * sizeScale;
+      const vx = rand(hell ? -150 : -115, hell ? 150 : 115) * motionScale;
+      const baseVy = hell ? rand(620, 750) : rand(560, 680);
+      const vy = -((baseVy + speedBoost) * motionScale);
+      const gravity = (hell ? 600 : 520) * motionScale;
       const rot = rand(-3, 3);
 
       if (isBomb) {
         items.push({
           type: 'bomb',
           x, y, vx, vy, radius,
-          gravity: 980,
+          gravity,
           sliced: false,
           rotation: 0,
           vr: rot,
@@ -238,7 +294,7 @@
           type: 'fruit',
           fruit,
           x, y, vx, vy, radius,
-          gravity: 980,
+          gravity,
           sliced: false,
           rotation: rand(0, Math.PI * 2),
           vr: rot,
@@ -325,13 +381,34 @@
 
     window.addEventListener('touchend', () => pointerDown = false);
 
-    startBtn.addEventListener('click', () => {
+    async function enterFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (e) {}
+      setTimeout(resize, 120);
+    }
+
+    function startMode(mode) {
+      gameMode = mode;
       startOverlay.style.display = 'none';
       resetGame();
-    });
+      enterFullscreen();
+    }
+
+    normalBtn.addEventListener('click', () => startMode('normal'));
+    hellBtn.addEventListener('click', () => startMode('hell'));
 
     restartBtn.addEventListener('click', () => {
       resetGame();
+      enterFullscreen();
+    });
+
+    menuBtn.addEventListener('click', () => {
+      running = false;
+      gameOverOverlay.style.display = 'none';
+      startOverlay.style.display = 'flex';
     });
 
     fsBtn.addEventListener('click', async () => {
@@ -352,14 +429,28 @@
 
       if (spawnTimer >= spawnInterval) {
         spawnTimer = 0;
-        const count = Math.random() < 0.24 ? 2 : 1;
+
+        let count;
+        if (gameMode === 'hell') {
+          const r = Math.random();
+          count = r < 0.18 ? 4 : (r < 0.58 ? 3 : 2);
+        } else {
+          count = Math.random() < 0.18 ? 2 : 1;
+        }
+
         for (let i = 0; i < count; i++) spawnItem();
       }
 
-      if (difficultyTimer > 5000) {
+      if (difficultyTimer > (gameMode === 'hell' ? 4200 : 6500)) {
         difficultyTimer = 0;
-        spawnInterval = Math.max(320, spawnInterval - 35);
-        speedBoost += 18;
+
+        if (gameMode === 'hell') {
+          spawnInterval = Math.max(250, spawnInterval - 28);
+          speedBoost += 7;
+        } else {
+          spawnInterval = Math.max(560, spawnInterval - 24);
+          speedBoost += 5;
+        }
       }
 
       for (let i = items.length - 1; i >= 0; i--) {
@@ -545,6 +636,12 @@
       ctx.font = 'bold 24px Arial';
       ctx.fillStyle = '#ffd26f';
       ctx.fillText(`Жизни: ${'❤️'.repeat(lives)}`, 28, 82);
+
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = gameMode === 'hell' ? '#ff6b52' : '#9bd0ff';
+      ctx.fillText(gameMode === 'hell' ? '🔥 АД' : 'ОБЫЧНАЯ', W - 24, 40);
+      ctx.textAlign = 'left';
 
       ctx.restore();
     }
