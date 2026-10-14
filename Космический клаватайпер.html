@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Astro Typer — клавиатурный тренажёр</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #05060f;
+    font-family: 'Courier New', monospace;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #game {
+    position: relative;
+    width: 1000px;
+    height: 650px;
+    background: radial-gradient(ellipse at center, #0d1030 0%, #05060f 70%);
+    border: 2px solid #2a3560;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(80, 150, 255, 0.25), inset 0 0 80px rgba(0,50,120,0.3);
+  }
+
+  .star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0.7;
+    animation: twinkle 2s infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes twinkle {
+    from { opacity: 0.2; }
+    to { opacity: 1; }
+  }
+
+  #ship {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 70px;
+    height: 70px;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    transition: transform 0.08s;
+  }
+  #ship svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 12px #4ea8ff);
+    animation: hover 3s ease-in-out infinite;
+  }
+  @keyframes hover {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-4px) rotate(2deg); }
+  }
+  #ship.hit { animation: shipHit 0.4s; }
+  @keyframes shipHit {
+    0%,100% { transform: translate(-50%, -50%); }
+    25% { transform: translate(-58%, -50%) scale(0.92); filter: hue-rotate(320deg); }
+    75% { transform: translate(-42%, -50%) scale(0.92); filter: hue-rotate(320deg); }
+  }
+  #ship.fire { animation: shipFire 0.15s; }
+  @keyframes shipFire {
+    0%,100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.15); }
+  }
+
+  .rock {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 8px #000, 2px 2px 4px #000;
+    z-index: 10;
+    transform: translate(-50%, -50%);
+    will-change: transform;
+    transition: filter 0.15s;
+  }
+  .rock svg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 8px rgba(255,120,60,0.6));
+    transition: filter 0.15s;
+  }
+  .rock span {
+    position: relative;
+    z-index: 2;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    pointer-events: none;
+    padding: 0 4px;
+  }
+  .rock.active svg { filter: drop-shadow(0 0 18px #ffe600); }
+  .rock.active span {
+    color: #ffe600;
+    text-shadow: 0 0 14px #ffe600, 0 0 4px #000;
+  }
+  .rock.destroyed {
+    animation: boom 0.4s forwards;
+    pointer-events: none;
+  }
+  @keyframes boom {
+    0% { transform: translate(-50%,-50%) scale(1) rotate(0deg); opacity: 1; }
+    60% { transform: translate(-50%,-50%) scale(1.6) rotate(90deg); opacity: 0.8;
+          filter: brightness(2) drop-shadow(0 0 30px #ff6600); }
+    100% { transform: translate(-50%,-50%) scale(2.2) rotate(180deg); opacity: 0; }
+  }
+
+  #laser {
+    position: absolute;
+    height: 3px;
+    background: linear-gradient(90deg, #4ea8ff, #00e5a0, #ffe600);
+    box-shadow: 0 0 12px #4ea8ff, 0 0 24px #4ea8ff;
+    transform-origin: left center;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    border-radius: 2px;
+    transition: opacity 0.08s;
+  }
+  #laser.on { opacity: 1; }
+
+  .spark {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 25;
+  }
+
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    letter-spacing: 1px;
+    z-index: 40;
+    pointer-events: none;
+  }
+  .hud-box {
+    background: rgba(8, 12, 28, 0.7);
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid #2a3560;
+    backdrop-filter: blur(4px);
+  }
+  #hearts { color: #ff3860; letter-spacing: 4px; }
+  #score { color: #00e5a0; }
+  #combo { color: #ffcc00; }
+  #speed { color: #4ea8ff; }
+  #level { color: #c48aff; }
+
+  #inputWrap {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 580px;
+    z-index: 30;
+  }
+  #typed {
+    background: rgba(8, 12, 28, 0.85);
+    border: 2px solid #4ea8ff;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: 22px;
+    letter-spacing: 3px;
+    min-height: 48px;
+    color: #00e5a0;
+    box-shadow: 0 0 22px rgba(78,168,255,0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: center;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+  #typed.error {
+    border-color: #ff3860;
+    box-shadow: 0 0 22px rgba(255,56,96,0.7);
+  }
+  #typed .ghost {
+    color: #4a5580;
+    text-shadow: none;
+  }
+  #typed::after {
+    content: '▌';
+    animation: blink 1s infinite;
+    color: #4ea8ff;
+    margin-left: 2px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  #hint {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6b7aa5;
+    letter-spacing: 1.5px;
+  }
+  #hint b { color: #4ea8ff; }
+
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 6, 16, 0.94);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    text-align: center;
+    padding: 30px;
+    backdrop-filter: blur(6px);
+    overflow-y: auto;
+  }
+  #overlay h1 {
+    font-size: 42px;
+    background: linear-gradient(135deg, #4ea8ff, #00e5a0, #ffcc00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 18px;
+    letter-spacing: 5px;
+    filter: drop-shadow(0 0 20px rgba(78,168,255,0.6));
+  }
+  #overlay p { color: #aab4d4; margin-bottom: 8px; font-size: 15px; line-height: 1.6; }
+
+  .diff-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 22px 0 10px;
+    width: 100%;
+    max-width: 780px;
+  }
+  .diff-card {
+    background: rgba(15, 22, 50, 0.85);
+    border: 2px solid #2a3560;
+    border-radius: 12px;
+    padding: 18px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .diff-card:hover {
+    transform: translateY(-4px);
+    border-color: #4ea8ff;
+    box-shadow: 0 8px 30px rgba(78,168,255,0.4);
+  }
+  .diff-card h3 {
+    font-size: 22px;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+  }
+  .diff-card.easy h3 { color: #00e5a0; }
+  .diff-card.medium h3 { color: #ffcc00; }
+  .diff-card.hard h3 { color: #ff3860; }
+  .diff-card p {
+    font-size: 12px;
+    color: #aab4d4;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+  .diff-icon { font-size: 30px; margin-bottom: 6px; }
+
+  #overlay button {
+    margin-top: 24px;
+    padding: 13px 44px;
+    font-family: inherit;
+    font-size: 18px;
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, #4ea8ff, #00e5a0);
+    color: #05060f;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  #overlay button:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 40px rgba(0,229,160,0.8);
+  }
+  #overlay.hidden { display: none; }
+  .stat { color: #00e5a0; font-weight: bold; }
+  #finalStats {
+    margin: 16px 0;
+    font-size: 18px;
+    color: #ffcc00;
+    line-height: 1.9;
+  }
+  #levelTag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    background: rgba(78,168,255,0.15);
+    border: 1px solid #4ea8ff;
+    color: #4ea8ff;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="hud">
+    <div class="hud-box">❤ <span id="hearts">♥♥♥♥♥</span></div>
+    <div class="hud-box">Уровень: <span id="level">—</span></div>
+    <div class="hud-box">Скорость: <span id="speed">0</span></div>
+    <div class="hud-box">Комбо: <span id="combo">0</span>x</div>
+    <div class="hud-box">Очки: <span id="score">0</span></div>
+  </div>
+
+  <div id="laser"></div>
+
+  <div id="ship">
+    <svg viewBox="0 0 100 100">
+      <polygon points="30,80 38,95 42,80" fill="#ff6600" opacity="0.9"/>
+      <polygon points="58,80 62,95 70,80" fill="#ff6600" opacity="0.9"/>
+      <ellipse cx="36" cy="88" rx="4" ry="8" fill="#ffe600"/>
+      <ellipse cx="64" cy="88" rx="4" ry="8" fill="#ffe600"/>
+      <polygon points="50,8 82,68 50,58 18,68"
+        fill="#4ea8ff" stroke="#bfe4ff" stroke-width="2"/>
+      <polygon points="50,8 50,58 18,68" fill="#2a7bcf"/>
+      <ellipse cx="50" cy="42" rx="11" ry="16" fill="#bfe4ff"/>
+      <ellipse cx="50" cy="42" rx="6" ry="10" fill="#00e5a0" opacity="0.85"/>
+      <polygon points="18,68 40,74 34,60" fill="#3a8ad0"/>
+      <polygon points="82,68 60,74 66,60" fill="#3a8ad0"/>
+    </svg>
+  </div>
+
+  <div id="inputWrap">
+    <div id="typed"></div>
+    <div id="hint">Печатай слова — <b>Backspace</b> стереть букву, <b>Esc</b> отменить ввод</div>
+  </div>
+
+  <div id="overlay"></div>
+</div>
+
+<script>
+/* ======================= СЛОВАРИ ======================= */
+// ЛЁГКИЙ — очень много коротких слов, изредка со знаком
+const WORDS_EASY = [
+  // просто слова
+  'кот','дом','лес','сок','мир','бег','час','код','сон','рак','низ','ухо','дым','мяч',
+  'нос','рот','зуб','глаз','день','ночь','свет','тьма','путь','шаг','конь','меч','щит',
+  'море','небо','луна','марс','луч','искра','песок','лёд','снег','дождь','ветер','дыра',
+  'стол','стул','шкаф','ключ','замок','дверь','окно','пол','потолок','стена','кран',
+  'мост','река','озеро','поле','гора','холм','тропа','куст','цвет','лист','корень',
+  'жук','оса','пчела','муха','комар','паук','птица','рыба','зверь','волк','лиса',
+  'заяц','мышь','крот','ёж','лось','олень','тигр','лев','слон','кит','дельфин',
+  'хлеб','сыр','мясо','рыба','суп','каша','соль','сахар','чай','кофе','молоко','вода',
+  'книга','ручка','тетрадь','стол','доска','мел','карта','флаг','герб','знамя',
+  'поезд','метро','автобус','такси','лодка','плот','сани','лыжи','коньки','мяч',
+  'игра','счёт','гол','матч','кубок','приз','медаль','орден','значок','билет',
+  'друг','брат','сестра','мама','папа','сын','дочь','внук','дед','баба','тётя','дядя',
+  'рука','нога','палец','спина','живот','шея','плечо','колено','локоть','пятка',
+  'радость','грусть','смех','плач','крик','шёпот','молчание','слово','фраза','текст',
+  // с запятой
+  'кот,','дом.','лес!','сок?','мир.','бег!','час,','код.','сон!','рак.','низ?','ухо,',
+  'море,','небо.','луна!','марс.','луч,','искра.','песок!','лёд.','снег,','дождь.',
+  'ветер!','стол,','стул.','ключ!','замок.','дверь,','окно.','мост!','река.','поле,',
+];
+
+// СРЕДНИЙ — средние слова с заглавной и знаками
+const WORDS_MEDIUM = [
+  // с Заглавной
+  'Море','Дорога','Камень','Печать','Скорость','Клавиша','Ракета','Планета','Комета',
+  'Орбита','Метеор','Космос','Спутник','Телескоп','Лазер','Двигатель','Пилот',
+  'Штурвал','Импульс','Заряд','Щит','Энергия','Фотон','Атом','Нейтрон',
+  'Плазма','Вакуум','Кратер','Грунт','Ветер','Туман','Рассвет','Закат','Звезда',
+  'Полярность','Гравитон','Магнит','Радиус','Диаметр','Периметр','Площадь','Объём',
+  'Плотность','Давление','Температура','Скорость','Ускорение','Торможение',
+  'Разгон','Поворот','Прыжок','Падение','Взлёт','Посадка','Полёт','Дрейф',
+  'Командир','Штурман','Механик','Инженер','Оператор','Диспетчер','Радист',
+  'Антенна','Панель','Кнопка','Тумблер','Рычаг','Педаль','Дисплей','Прибор',
+  'Сенсор','Датчик','Модуль','Блок','Картридж','Дискета','Касета','Плёнка',
+  // со знаками
+  'Море,','Дорога.','Камень!','Печать?','Ракета.','Планета,','Комета!','Орбита.',
+  'Метеор,','Космос.','Луна!','Марс.','Лазер,','Пилот!','Щит.','Энергия,','Фотон.',
+  'Звезда.','Ветер,','Туман!','Рассвет.','Закат,','Магнит!','Радиус.','Диаметр,',
+  'Прыжок!','Взлёт.','Посадка,','Полёт!','Дрейф.','Командир,','Штурман.','Механик!',
+  'Инженер.','Оператор,','Антенна!','Панель.','Кнопка,','Тумблер!','Рычаг.','Педаль,',
+  'Дисплей.','Прибор,','Сенсор!','Датчик.','Модуль,','Картридж!','Дискета.','Касета,',
+];
+
+// СЛОЖНЫЙ — длинные слова со знаками
+const WORDS_HARD = [
+  'Галактика','Астероид','Траектория','Гравитация','Ускорение','Пространство',
+  'Исследователь','Космонавт','Притяжение','Температура','Излучение','Телепортация',
+  'Навигация','Атмосфера','Магнитосфера','Синхронизация','Калибровка','Диагностика',
+  'Программирование','Клавиатура','Тренажёр','Скорочтение','Эффективность',
+  'Астрономия','Астрофизика','Космогония','Космология','Спектрометр','Радиометр',
+  'Интерферометр','Телепортирование','Терраформирование','Кибернетика','Киберпространство',
+  'Микроэлектроника','Нанотехнология','Робототехника','Программирование','Шифрование',
+  'Дешифрование','Кодирование','Декодирование','Модуляция','Демодуляция','Фильтрация',
+  'Синхронизирование','Стабилизирование','Манипулирование','Конфигурирование',
+  'Оптимизирование','Аппроксимация','Интерполяция','Экстраполяция','Дифференциация',
+  'Интегрирование','Вектор','Матрица','Тензор','Спинор','Кварк','Лептон','Бозон',
+  'Фермион','Адрон','Мезон','Барион','Нуклон','Протон','Нейтрон','Электрон',
+  'Позитрон','Мюон','Тауон','Нейтрино','Фотон','Глюон','Гравитон','Хиггс',
+  // со знаками
+  'Галактика.','Астероид!','Траектория?','Гравитация,','Ускорение.','Пространство!',
+  'Исследователь,','Космонавт.','Притяжение!','Температура?','Излучение.','Телепортация,',
+  'Навигация!','Атмосфера.','Синхронизация,','Калибровка!','Диагностика.','Программирование,',
+  'Клавиатура!','Тренажёр.','Скорочтение,','Эффективность!','Астрономия.','Кибернетика,',
+  'Робототехника!','Шифрование.','Кодирование,','Модуляция!','Фильтрация.','Оптимизация,',
+];
+
+/* ======================= КОНФИГ УРОВНЕЙ ======================= */
+const LEVELS = {
+  easy: {
+    name: 'ЛЁГКИЙ',
+    color: '#00e5a0',
+    words: WORDS_EASY,
+    baseSpeed: 0.24,
+    // очень плавный рост: каждые 500 очков = +0.005 к скорости
+    speedStep: 0.0007,
+    speedCap: 0.55,            // потолок скорости
+    spawnStart: 2200,
+    spawnMin: 1300,
+    spawnScoreFactor: 0.4,     // как быстро сокращается интервал
+    maxRocks: 4,
+    aimAtShipChance: 0.5,
+    lives: 5,
+    rockSize: 78,
+    maxDifficultyScore: 2000,  // при этом счёте скорость максимальная
+  },
+  medium: {
+    name: 'СРЕДНИЙ',
+    color: '#ffcc00',
+    words: WORDS_MEDIUM,
+    baseSpeed: 0.28,
+    speedStep: 0.0008,
+    speedCap: 0.60,
+    spawnStart: 2500,
+    spawnMin: 1500,
+    spawnScoreFactor: 0.4,
+    maxRocks: 5,
+    aimAtShipChance: 0.55,
+    lives: 5,
+    rockSize: 90,
+    maxDifficultyScore: 2500,
+  },
+  hard: {
+    name: 'СЛОЖНЫЙ',
+    color: '#ff3860',
+    words: WORDS_HARD,
+    baseSpeed: 0.26,
+    speedStep: 0.0010,
+    speedCap: 0.65,
+    spawnStart: 2900,
+    spawnMin: 1500,
+    spawnScoreFactor: 0.4,
+    maxRocks: 5,
+    aimAtShipChance: 0.5,
+    lives: 5,
+    rockSize: 105,
+    maxDifficultyScore: 3000,
+  },
+};
+
+const SHIP_HIT_RADIUS = 55;
+
+/* ======================= DOM ======================= */
+const gameEl   = document.getElementById('game');
+const shipEl   = document.getElementById('ship');
+const heartsEl = document.getElementById('hearts');
+const scoreEl  = document.getElementById('score');
+const comboEl  = document.getElementById('combo');
+const speedEl  = document.getElementById('speed');
+const levelEl  = document.getElementById('level');
+const typedEl  = document.getElementById('typed');
+const overlay  = document.getElementById('overlay');
+const laserEl  = document.getElementById('laser');
+
+/* ======================= СОСТОЯНИЕ ======================= */
+let rocks = [];
+let typed = '';
+let activeRock = null;
+let lives = 5;
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let running = false;
+let lastFrame = 0;
+let spawnTimer = 0;
+let gameTime = 0;
+let correctChars = 0;
+let totalChars = 0;
+let shipCenter = { x: 0, y: 0 };
+let currentLevel = 'easy';
+
+/* ======================= ФОН ======================= */
+function initStars() {
+  for (let i = 0; i < 90; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 1;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 2) + 's';
+    s.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    gameEl.appendChild(s);
+  }
+}
+initStars();
+
+/* ======================= УТИЛИТЫ ======================= */
+function randWord() {
+  const words = LEVELS[currentLevel].words;
+  return words[Math.floor(Math.random() * words.length)];
+}
+
+// Текущая скорость с учётом потолка
+function currentRockSpeed() {
+  const cfg = LEVELS[currentLevel];
+  const raw = cfg.baseSpeed + score * cfg.speedStep;
+  return Math.min(raw, cfg.speedCap);
+}
+
+// Прогресс сложности 0..1 для интервала спавна
+function difficultyProgress() {
+  const cfg = LEVELS[currentLevel];
+  return Math.min(1, score / cfg.maxDifficultyScore);
+}
+
+function updateShipCenter() {
+  const r = shipEl.getBoundingClientRect();
+  const g = gameEl.getBoundingClientRect();
+  shipCenter.x = r.left + r.width / 2 - g.left;
+  shipCenter.y = r.top + r.height / 2 - g.top;
+}
+
+/* ======================= АНТИ-ПЕРЕКРЫТИЕ ======================= */
+function isFreeSpot(x, y, size, checkRocks) {
+  for (const r of checkRocks) {
+    if (r.destroyed) continue;
+    const dx = r.x - x;
+    const dy = r.y - y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = (r.size + size) / 2 + 25;
+    if (dist < minDist) return false;
+  }
+  return true;
+}
+
+/* ======================= СПАВН ======================= */
+function spawnRock() {
+  const cfg = LEVELS[currentLevel];
+  if (rocks.filter(r => !r.destroyed).length >= cfg.maxRocks) return;
+
+  // избегаем дублей слов и похожих первых букв
+  const existingWords = rocks.map(r => r.text);
+  const existingFirstLetters = rocks.map(r => r.text[0]);
+  let word;
+  let attempts = 0;
+  do {
+    word = randWord();
+    attempts++;
+  } while (
+    (existingWords.includes(word) || existingFirstLetters.includes(word[0]))
+    && attempts < 30
+  );
+
+  const W = gameEl.clientWidth;
+  const H = gameEl.clientHeight;
+  const margin = 60;
+  const size = cfg.rockSize;
+
+  let x, y;
+  let found = false;
+
+  for (let tries = 0; tries < 40; tries++) {
+    const edge = Math.floor(Math.random() * 4);
+    if (edge === 0) { x = -margin; y = 100 + Math.random() * (H - 250); }
+    else if (edge === 1) { x = W + margin; y = 100 + Math.random() * (H - 250); }
+    else if (edge === 2) { x = 100 + Math.random() * (W - 200); y = -margin; }
+    else { x = 100 + Math.random() * (W - 200); y = H + margin; }
+
+    if (isFreeSpot(x, y, size, rocks)) { found = true; break; }
+  }
+  if (!found) return;
+
+  // цель: летит в корабль или мимо
+  let tx, ty;
+  if (Math.random() < cfg.aimAtShipChance) {
+    tx = shipCenter.x + (Math.random() - 0.5) * 40;
+    ty = shipCenter.y + (Math.random() - 0.5) * 40;
+  } else {
+    const side = Math.floor(Math.random() * 4);
+    if (side === 0) { tx = -50; ty = Math.random() * H; }
+    else if (side === 1) { tx = W + 50; ty = Math.random() * H; }
+    else if (side === 2) { tx = Math.random() * W; ty = -50; }
+    else { tx = Math.random() * W; ty = H + 50; }
+  }
+
+  const dx = tx - x;
+  const dy = ty - y;
+  const dist = Math.hypot(dx, dy);
+  const speed = currentRockSpeed() * (0.9 + Math.random() * 0.2);
+  const vx = (dx / dist) * speed;
+  const vy = (dy / dist) * speed;
+
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI - 90;
+  const rotSpeed = (Math.random() - 0.5) * 0.5;
+
+  const el = document.createElement('div');
+  el.className = 'rock';
+  el.style.width = size + 'px';
+  el.style.height = size + 'px';
+  el.innerHTML = `
+    <svg viewBox="0 0 80 80" style="transform: rotate(${angle}deg)">
+      <polygon points="40,4 72,20 76,54 56,76 20,72 6,44 12,14"
+        fill="#6b5b4a" stroke="#3a2f24" stroke-width="3"/>
+      <polygon points="40,14 62,26 64,50 50,64 26,60 16,42 22,22"
+        fill="#8a7660" opacity="0.65"/>
+      <circle cx="30" cy="34" r="6" fill="#4a3d30" opacity="0.7"/>
+      <circle cx="54" cy="52" r="4" fill="#4a3d30" opacity="0.7"/>
+    </svg>
+    <span>${word}</span>`;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  gameEl.appendChild(el);
+
+  rocks.push({
+    el, x, y, vx, vy, text: word,
+    size, rot: angle, rotSpeed,
+    destroyed: false,
+  });
+}
+
+/* ======================= ОТРИСОВКА ВВОДА ======================= */
+function renderTyped() {
+  if (!activeRock) {
+    typedEl.textContent = '';
+    return;
+  }
+  const target = activeRock.text;
+  const done = typed;
+  const rest = target.slice(done.length);
+  typedEl.innerHTML = `${escapeHtml(done)}<span class="ghost">${escapeHtml(rest)}</span>`;
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+/* ======================= ВВОД ======================= */
+document.addEventListener('keydown', (e) => {
+  if (!running) return;
+  if (e.key === 'Escape') { cancelTyping(); return; }
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (typed.length > 0) {
+      typed = typed.slice(0, -1);
+      renderTyped();
+    } else if (activeRock) {
+      // стёрли всё — отменяем выбор метеорита
+      cancelTyping();
+    }
+    return;
+  }
+  if (e.key.length !== 1) return;
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  handleChar(e.key);
+});
+
+function cancelTyping() {
+  if (activeRock) activeRock.el.classList.remove('active');
+  activeRock = null;
+  typed = '';
+  renderTyped();
+  laserEl.classList.remove('on');
+}
+
+function handleChar(ch) {
+  if (!activeRock) {
+    const candidates = rocks
+      .filter(r => !r.destroyed && r.text[0] === ch)
+      .sort((a, b) => {
+        const da = Math.hypot(a.x - shipCenter.x, a.y - shipCenter.y);
+        const db = Math.hypot(b.x - shipCenter.x, b.y - shipCenter.y);
+        return da - db;
+      });
+    if (candidates.length > 0) {
+      activeRock = candidates[0];
+      typed = '';
+    } else {
+      combo = 0;
+      updateHUD();
+      flashError();
+      return;
+    }
+  }
+
+  const target = activeRock;
+  if (!target || target.destroyed) {
+    cancelTyping();
+    return;
+  }
+
+  const nextIndex = typed.length;
+  if (target.text[nextIndex] === ch) {
+    typed += ch;
+    correctChars++;
+    totalChars++;
+    renderTyped();
+    highlightActive();
+    fireLaser(target);
+    if (typed === target.text) destroyRock(target);
+  } else {
+    combo = 0;
+    totalChars++;
+    updateHUD();
+    flashError();
+  }
+}
+
+function flashError() {
+  typedEl.classList.add('error');
+  setTimeout(() => typedEl.classList.remove('error'), 140);
+}
+
+function highlightActive() {
+  rocks.forEach(r => r.el.classList.remove('active'));
+  if (activeRock) activeRock.el.classList.add('active');
+}
+
+/* ======================= ЛАЗЕР ======================= */
+let laserTimeout = null;
+function fireLaser(target) {
+  updateShipCenter();
+  const dx = target.x - shipCenter.x;
+  const dy = target.y - shipCenter.y;
+  const dist = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+  laserEl.style.left = shipCenter.x + 'px';
+  laserEl.style.top = shipCenter.y + 'px';
+  laserEl.style.width = dist + 'px';
+  laserEl.style.transform = `rotate(${angle}deg)`;
+  laserEl.classList.add('on');
+
+  shipEl.classList.remove('fire');
+  void shipEl.offsetWidth;
+  shipEl.classList.add('fire');
+
+  if (laserTimeout) clearTimeout(laserTimeout);
+  laserTimeout = setTimeout(() => laserEl.classList.remove('on'), 90);
+}
+
+/* ======================= ИСКРЫ ======================= */
+function spawnSparks(x, y, count = 14) {
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const size = 4 + Math.random() * 5;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = x + 'px';
+    s.style.top = y + 'px';
+    const hue = 20 + Math.random() * 40;
+    s.style.background = `hsl(${hue}, 100%, ${55 + Math.random() * 25}%)`;
+    s.style.boxShadow = `0 0 10px hsl(${hue}, 100%, 60%)`;
+    gameEl.appendChild(s);
+
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 40 + Math.random() * 130;
+    const vx = Math.cos(ang) * spd;
+    const vy = Math.sin(ang) * spd;
+    const start = performance.now();
+    const life = 400 + Math.random() * 300;
+
+    function anim(t) {
+      const dt = (t - start) / 1000;
+      if (dt * 1000 > life) { s.remove(); return; }
+      const px = x + vx * dt;
+      const py = y + vy * dt + 60 * dt * dt;
+      s.style.left = px + 'px';
+      s.style.top = py + 'px';
+      s.style.opacity = 1 - dt * 1000 / life;
+      requestAnimationFrame(anim);
+    }
+    requestAnimationFrame(anim);
+  }
+}
+
+/* ======================= УНИЧТОЖЕНИЕ ======================= */
+function destroyRock(rock) {
+  rock.destroyed = true;
+  rock.el.classList.remove('active');
+  rock.el.classList.add('destroyed');
+
+  score += rock.text.length * 10;
+  combo++;
+  if (combo > maxCombo) maxCombo = combo;
+  score += Math.min(combo, 10) * 5;
+
+  spawnSparks(rock.x, rock.y, 18);
+
+  cancelTyping();
+  updateHUD();
+
+  setTimeout(() => rock.el.remove(), 400);
+  rocks = rocks.filter(r => r !== rock);
+}
+
+/* ======================= СТОЛКНОВЕНИЕ ======================= */
+function rockHitsShip(rock) {
+  rock.destroyed = true;
+  rock.el.remove();
+  rocks = rocks.filter(r => r !== rock);
+
+  lives--;
+  combo = 0;
+
+  shipEl.classList.remove('hit');
+  void shipEl.offsetWidth;
+  shipEl.classList.add('hit');
+
+  spawnSparks(shipCenter.x, shipCenter.y, 10);
+
+  if (rock === activeRock) cancelTyping();
+  updateHUD();
+
+  if (lives <= 0) endGame();
+}
+
+/* ======================= HUD ======================= */
+function updateHUD() {
+  heartsEl.textContent = '♥'.repeat(Math.max(0, lives)) + '·'.repeat(Math.max(0, LEVELS[currentLevel].lives - lives));
+  scoreEl.textContent = score;
+  comboEl.textContent = combo;
+  speedEl.textContent = Math.round(currentRockSpeed() * 60);
+  levelEl.textContent = LEVELS[currentLevel].name;
+  levelEl.style.color = LEVELS[currentLevel].color;
+}
+
+/* ======================= ИГРОВОЙ ЦИКЛ ======================= */
+function loop(ts) {
+  if (!running) return;
+  const dt = Math.min(ts - lastFrame, 60);
+  lastFrame = ts;
+  gameTime += dt;
+
+  updateShipCenter();
+
+  // Спавн — интервал сокращается плавно по прогрессу
+  const cfg = LEVELS[currentLevel];
+  spawnTimer += dt;
+  const progress = difficultyProgress();
+  const interval = cfg.spawnStart - (cfg.spawnStart - cfg.spawnMin) * progress;
+  if (spawnTimer >= interval) {
+    spawnTimer = 0;
+    spawnRock();
+  }
+
+  // Движение
+  for (let i = rocks.length - 1; i >= 0; i--) {
+    const r = rocks[i];
+    if (r.destroyed) continue;
+
+    r.x += r.vx * (dt / 16.67);
+    r.y += r.vy * (dt / 16.67);
+    r.rot += r.rotSpeed;
+    r.el.style.left = r.x + 'px';
+    r.el.style.top = r.y + 'px';
+    const svg = r.el.querySelector('svg');
+    if (svg) svg.style.transform = `rotate(${r.rot}deg)`;
+
+    const dist = Math.hypot(r.x - shipCenter.x, r.y - shipCenter.y);
+    if (dist < SHIP_HIT_RADIUS) {
+      rockHitsShip(r);
+      continue;
+    }
+
+    const W = gameEl.clientWidth;
+    const H = gameEl.clientHeight;
+    if (r.x < -250 || r.x > W + 250 || r.y < -250 || r.y > H + 250) {
+      if (r === activeRock) cancelTyping();
+      r.el.remove();
+      rocks = rocks.filter(x => x !== r);
+    }
+  }
+
+  highlightActive();
+  requestAnimationFrame(loop);
+}
+
+/* ======================= ЭКРАНЫ ======================= */
+function showMenu() {
+  overlay.innerHTML = `
+    <h1>ASTRO TYPER</h1>
+    <p>Ты — пилот звёздолёта в астероидном поле.</p>
+    <p>Метеориты со словами летят хаотично, часть — прямо на тебя.</p>
+    <p>Печатай слово — лазер уничтожит метеорит. Не успел — минус жизнь.</p>
+    <p style="margin-top:10px; color:#6b7aa5; font-size:13px;">
+      Backspace — стереть букву · Esc — отменить ввод и выбрать другой метеорит
+    </p>
+    <p style="margin-top:14px; color:#6b7aa5;">Выбери уровень сложности:</p>
+    <div class="diff-grid">
+      <div class="diff-card easy" data-level="easy">
+        <div class="diff-icon">🌱</div>
+        <h3>ЛЁГКИЙ</h3>
+        <p>Короткие слова</p>
+        <p>Без заглавных</p>
+        <p>Очень плавный рост скорости</p>
+      </div>
+      <div class="diff-card medium" data-level="medium">
+        <div class="diff-icon">⚡</div>
+        <h3>СРЕДНИЙ</h3>
+        <p>Средние слова</p>
+        <p>С Заглавной буквы</p>
+        <p>Со знаками препинания</p>
+      </div>
+      <div class="diff-card hard" data-level="hard">
+        <div class="diff-icon">🔥</div>
+        <h3>СЛОЖНЫЙ</h3>
+        <p>Длинные слова</p>
+        <p>Медленно, но ускоряются</p>
+        <p>Много знаков препинания</p>
+      </div>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  overlay.querySelectorAll('.diff-card').forEach(card => {
+    card.addEventListener('click', () => {
+      currentLevel = card.dataset.level;
+      startGame();
+    });
+  });
+}
+
+function startGame() {
+  rocks.forEach(r => r.el.remove());
+  rocks = [];
+  typed = '';
+  activeRock = null;
+  lives = LEVELS[currentLevel].lives;
+  score = 0;
+  combo = 0;
+  maxCombo = 0;
+  spawnTimer = 0;
+  gameTime = 0;
+  correctChars = 0;
+  totalChars = 0;
+  typedEl.innerHTML = '';
+  laserEl.classList.remove('on');
+  overlay.classList.add('hidden');
+  updateHUD();
+  updateShipCenter();
+  running = true;
+  lastFrame = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function endGame() {
+  running = false;
+  const minutes = Math.max(gameTime / 60000, 0.01);
+  const wpm = Math.round((correctChars / 5) / minutes);
+  const accuracy = totalChars > 0
+    ? Math.round((correctChars / totalChars) * 100)
+    : 100;
+  const cfg = LEVELS[currentLevel];
+
+  overlay.innerHTML = `
+    <div id="levelTag" style="color:${cfg.color}; border-color:${cfg.color}">
+      УРОВЕНЬ: ${cfg.name}
+    </div>
+    <h1>МИССИЯ ЗАВЕРШЕНА</h1>
+    <div id="finalStats">
+      Очки: <span class="stat">${score}</span><br>
+      Скорость: <span class="stat">${wpm} зн/мин</span><br>
+      Точность: <span class="stat">${accuracy}%</span><br>
+      Макс. комбо: <span class="stat">${maxCombo}x</span>
+    </div>
+    <p style="color:#6b7aa5">Хочешь попробовать другой уровень?</p>
+    <button id="menuBtn">В МЕНЮ</button>
+  `;
+  overlay.classList.remove('hidden');
+  document.getElementById('menuBtn').addEventListener('click', showMenu);
+}
+
+/* ======================= СТАРТ ======================= */
+window.addEventListener('resize', updateShipCenter);
+showMenu();
+</script>
+</body>
+</html>
