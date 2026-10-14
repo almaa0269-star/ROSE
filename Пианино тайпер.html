@@ -43,7 +43,6 @@
   #app.flash-bad  { box-shadow: inset 0 0 220px rgba(255,77,109,0.4); }
   #app.flash-praise { box-shadow: inset 0 0 280px rgba(255,204,0,0.35); }
 
-  /* ============ HUD ============ */
   #hud {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -78,7 +77,33 @@
 
   #hudLeft, #hudRight { display: flex; gap: 12px; align-items: center; }
 
-  /* ============ Игровое поле ============ */
+  #menuHomeBtn {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(8, 12, 28, 0.78);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 18px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+    z-index: 31;
+    pointer-events: auto;
+    font-family: inherit;
+  }
+  #menuHomeBtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 20px rgba(78,168,255,0.4);
+  }
+  #menuHomeBtn:active { transform: translateX(-50%) scale(0.96); }
+
   #field {
     position: relative;
     width: 100%;
@@ -99,7 +124,6 @@
     pointer-events: none;
   }
 
-  /* Красная линия "промаха" внизу */
   #dangerLine {
     position: absolute;
     left: 0;
@@ -125,7 +149,6 @@
     opacity: 0.75;
   }
 
-  /* Падающие ноты */
   .note {
     position: absolute;
     width: 68px;
@@ -166,13 +189,6 @@
     box-shadow: 0 8px 24px rgba(196,138,255,0.55),
                 inset 0 -4px 0 rgba(0,0,0,0.3),
                 inset 0 4px 0 rgba(255,255,255,0.2);
-  }
-  .note.space {
-    background: linear-gradient(135deg, #5c6b8a, #3a4459);
-    box-shadow: 0 8px 24px rgba(92,107,138,0.6),
-                inset 0 -4px 0 rgba(0,0,0,0.3);
-    font-size: 14px;
-    letter-spacing: 2px;
   }
   .note.special {
     animation: specialPulse 0.9s infinite alternate;
@@ -238,7 +254,57 @@
     100% { opacity: 0; transform: translate(-50%, -150%) scale(0.85) rotate(-3deg); }
   }
 
-  /* Полоса тайминга внизу */
+  .error-msg {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    transform: translate(-50%, -50%) scale(0.3);
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    z-index: 29;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--danger);
+    text-shadow: 0 0 30px var(--danger), 0 0 60px rgba(255,77,109,0.6), 0 6px 0 rgba(0,0,0,0.4);
+    animation: errorPop 1s forwards;
+    white-space: nowrap;
+  }
+  @keyframes errorPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(8deg); }
+    15%  { opacity: 1; transform: translate(-50%, -55%) scale(1.25) rotate(-3deg); }
+    50%  { opacity: 1; transform: translate(-50%, -70%) scale(1.05) rotate(1deg); }
+    100% { opacity: 0; transform: translate(-50%, -120%) scale(0.9) rotate(-2deg); }
+  }
+
+  .penalty-msg {
+    position: absolute;
+    left: 50%;
+    top: 60%;
+    transform: translate(-50%, -50%) scale(0.3);
+    font-size: 40px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    z-index: 29;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--warn);
+    text-shadow: 0 0 24px var(--warn), 0 0 48px rgba(255,204,0,0.6), 0 4px 0 rgba(0,0,0,0.4);
+    animation: penaltyPop 1.4s forwards;
+    white-space: nowrap;
+    padding: 10px 26px;
+    background: rgba(255,204,0,0.12);
+    border: 2px solid var(--warn);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+  }
+  @keyframes penaltyPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    15%  { opacity: 1; transform: translate(-50%, -55%) scale(1.15); }
+    70%  { opacity: 1; transform: translate(-50%, -60%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -90%) scale(0.85); }
+  }
+
   #timingBar {
     position: absolute;
     left: 0; right: 0;
@@ -256,7 +322,6 @@
     box-shadow: 0 0 14px rgba(255,204,0,0.7);
   }
 
-  /* Большое комбо в центре */
   #comboBig {
     position: absolute;
     top: 22%;
@@ -283,7 +348,6 @@
     100% { transform: translateX(-50%) scale(1); }
   }
 
-  /* Плавающие напоминания */
   #keyHint {
     position: absolute;
     bottom: 16px;
@@ -301,7 +365,34 @@
   }
   #keyHint b { color: var(--accent); }
 
-  /* ============ Оверлей ============ */
+  #errorStreak {
+    position: absolute;
+    top: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 32;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  #errorStreak.show { opacity: 1; }
+  #errorStreak .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255,77,109,0.15);
+    border: 2px solid rgba(255,77,109,0.4);
+    transition: all 0.2s;
+  }
+  #errorStreak .dot.on {
+    background: var(--danger);
+    border-color: var(--danger);
+    box-shadow: 0 0 14px var(--danger);
+    transform: scale(1.2);
+  }
+
   #overlay {
     position: absolute;
     inset: 0;
@@ -416,8 +507,8 @@
   .stat { color: var(--accent2); font-weight: 900; }
   .stat.gold { color: var(--warn); }
   .stat.purple { color: var(--purple); }
+  .stat.red { color: var(--danger); }
 
-  /* Тост */
   #toast {
     position: absolute;
     top: 90px;
@@ -446,13 +537,21 @@
     <div id="hudLeft">
       <div class="hud-box" id="hudLives">❤❤❤❤❤</div>
       <div class="hud-box" id="hudLevel">🟢 ЛЁГКИЙ</div>
-      <div class="hud-box" id="hudSpeed">1.0×</div>
+      <div class="hud-box" id="hudSpeed">0.47×</div>
     </div>
     <div id="hudRight">
       <div class="hud-box" id="hudCombo">x0</div>
       <div class="hud-box" id="hudAcc">100%</div>
       <div class="hud-box" id="hudScore">0</div>
     </div>
+  </div>
+
+  <button id="menuHomeBtn">← В МЕНЮ ИГР</button>
+
+  <div id="errorStreak">
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
   </div>
 
   <div id="field">
@@ -473,19 +572,21 @@
 <script>
 /* =========================================================
    КОНФИГ УРОВНЕЙ
+   Интервалы спавна увеличены в 2 раза — нот стало вдвое меньше.
+   Скорость и рост оставлены как были (уже уменьшены в 3 раза).
 ========================================================= */
 const LEVELS = {
   easy: {
     name: 'ЛЁГКИЙ',
     icon: '🟢',
     color: '#00e5a0',
-    // Только буквы (русские)
     pool: 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ',
-    baseSpeed: 1.4,
-    speedStep: 0.0012,
-    maxSpeed: 4.0,
-    spawnStart: 1300,
-    spawnMin: 650,
+    baseSpeed: 0.47,
+    speedStep: 0.0004,
+    maxSpeed: 1.4,
+    // БЫЛО 1300 → 650, СТАЛО 2600 → 1300 (в 2 раза реже)
+    spawnStart: 2600,
+    spawnMin: 1300,
     lives: 5,
     specialChance: 0.05,
   },
@@ -493,13 +594,13 @@ const LEVELS = {
     name: 'СРЕДНИЙ',
     icon: '🟡',
     color: '#ffcc00',
-    // Буквы + цифры
     pool: 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ1234567890',
-    baseSpeed: 1.8,
-    speedStep: 0.0015,
-    maxSpeed: 5.0,
-    spawnStart: 1150,
-    spawnMin: 520,
+    baseSpeed: 0.60,
+    speedStep: 0.0005,
+    maxSpeed: 1.75,
+    // БЫЛО 1150 → 520, СТАЛО 2300 → 1040
+    spawnStart: 2300,
+    spawnMin: 1040,
     lives: 4,
     specialChance: 0.06,
   },
@@ -507,18 +608,31 @@ const LEVELS = {
     name: 'СЛОЖНЫЙ',
     icon: '🔴',
     color: '#ff4d6d',
-    // Буквы + цифры + ВСЕ доступные символы с клавиатуры
     pool: 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ1234567890' +
           '?!@#$%^&*()-_=+[]{};:\'",.<>/?\\|`~№',
-    baseSpeed: 2.2,
-    speedStep: 0.0018,
-    maxSpeed: 6.0,
-    spawnStart: 950,
-    spawnMin: 380,
+    baseSpeed: 0.73,
+    speedStep: 0.0006,
+    maxSpeed: 2.1,
+    // БЫЛО 950 → 380, СТАЛО 1900 → 760
+    spawnStart: 1900,
+    spawnMin: 760,
     lives: 3,
     specialChance: 0.08,
   },
 };
+
+/* Фразы для ошибок */
+const ERROR_PHRASES = [
+  'ОШИБКА!',
+  'ПРЕКРАТИ!',
+  'ПИШИ ПРАВИЛЬНО!',
+  'НЕ ТА БУКВА!',
+  'ВНИМАТЕЛЬНЕЕ!',
+  'МИМО!',
+  'НЕВЕРНО!',
+];
+
+const PENALTY_PHRASE = 'ШТРАФ −100';
 
 /* =========================================================
    СОСТОЯНИЕ
@@ -539,6 +653,8 @@ let state = {
   fieldW: 0,
   fieldH: 0,
   hitTimings: [],
+  errorStreak: 0,
+  penalties: 0,
 };
 
 const PRAISE_WORDS = [
@@ -563,6 +679,7 @@ const overlay = document.getElementById('overlay');
 const toastEl = document.getElementById('toast');
 const comboBig = document.getElementById('comboBig');
 const timingFill = document.getElementById('timingFill');
+const errorStreakEl = document.getElementById('errorStreak');
 
 /* =========================================================
    ЗВУК
@@ -650,7 +767,6 @@ function spawnNote() {
    ВВОД
 ========================================================= */
 document.addEventListener('keydown', (e) => {
-  // Enter на оверлее — старт
   if (!state.running) {
     if (e.key === 'Enter') {
       const btn = overlay.querySelector('#startBtn');
@@ -670,8 +786,6 @@ document.addEventListener('keydown', (e) => {
 function onInput(rawCh) {
   ensureAudio();
 
-  // Определяем, какой символ на самом деле ввёл пользователь.
-  // Русские буквы — в верхний регистр. Латиница — в верхний. Символы — как есть.
   let ch = rawCh;
   if (/[а-яё]/i.test(ch)) ch = ch.toUpperCase();
   else if (/[a-z]/i.test(ch)) ch = ch.toUpperCase();
@@ -681,13 +795,34 @@ function onInput(rawCh) {
     .sort((a, b) => b.y - a.y);
 
   if (candidates.length === 0) {
+    // ОШИБКА — неверная буква
     state.combo = 0;
     state.wrong++;
-    updateHUD();
+    state.errorStreak++;
+
+    const phrase = ERROR_PHRASES[Math.floor(Math.random() * ERROR_PHRASES.length)];
+    showErrorMessage(phrase);
+
+    if (state.errorStreak >= 3) {
+      state.penalties++;
+      state.score = Math.max(0, state.score - 100);
+      showPenalty();
+      playPenaltySound();
+      state.errorStreak = 0;
+    } else {
+      playTone(110, 0.18, 'sawtooth', 0.08);
+      playTone(90, 0.22, 'square', 0.06);
+    }
+
     flash('bad');
-    playTone(110, 0.18, 'sawtooth', 0.08);
+    updateHUD();
+    updateErrorStreak();
     return;
   }
+
+  // УСПЕХ
+  state.errorStreak = 0;
+  updateErrorStreak();
 
   const note = candidates[0];
   note.hit = true;
@@ -707,8 +842,7 @@ function onInput(rawCh) {
   const total = basePts + comboBonus + accBonus + specialBonus;
   state.score += total;
 
-  // Звук — частота по хешу символа, но в приятном диапазоне
-  const baseFreq = 220 + (ch.charCodeAt(0) % 24) * 28;  // 220..880
+  const baseFreq = 220 + (ch.charCodeAt(0) % 24) * 28;
   playTone(baseFreq, 0.22, 'triangle', 0.13 + progress * 0.06);
   if (state.combo >= 5) playTone(baseFreq * 1.5, 0.18, 'sine', 0.07);
   if (note.isSpecial) playTone(baseFreq * 2, 0.3, 'square', 0.06);
@@ -737,6 +871,59 @@ function onInput(rawCh) {
   updateHUD();
 }
 
+/* =========================================================
+   СООБЩЕНИЯ
+========================================================= */
+function showErrorMessage(text) {
+  const el = document.createElement('div');
+  el.className = 'error-msg';
+  el.textContent = text;
+  el.style.marginLeft = (Math.random() * 60 - 30) + 'px';
+  fieldEl.appendChild(el);
+  setTimeout(() => el.remove(), 1050);
+}
+
+function showPenalty() {
+  const el = document.createElement('div');
+  el.className = 'penalty-msg';
+  el.textContent = PENALTY_PHRASE;
+  fieldEl.appendChild(el);
+  setTimeout(() => el.remove(), 1450);
+
+  flash('bad');
+  appEl.animate(
+    [{ transform: 'translateX(0)' },
+     { transform: 'translateX(-12px)' },
+     { transform: 'translateX(12px)' },
+     { transform: 'translateX(-8px)' },
+     { transform: 'translateX(8px)' },
+     { transform: 'translateX(0)' }],
+    { duration: 320 }
+  );
+}
+
+function playPenaltySound() {
+  playTone(160, 0.15, 'sawtooth', 0.1);
+  setTimeout(() => playTone(120, 0.2, 'sawtooth', 0.1), 100);
+  setTimeout(() => playTone(90, 0.35, 'square', 0.12), 220);
+}
+
+function updateErrorStreak() {
+  const dots = errorStreakEl.querySelectorAll('.dot');
+  if (state.errorStreak > 0) {
+    errorStreakEl.classList.add('show');
+    dots.forEach((d, i) => {
+      d.classList.toggle('on', i < state.errorStreak);
+    });
+  } else {
+    errorStreakEl.classList.remove('show');
+    dots.forEach(d => d.classList.remove('on'));
+  }
+}
+
+/* =========================================================
+   ЭФФЕКТЫ
+========================================================= */
 function spawnFloatingChar(x, y, txt, color) {
   const el = document.createElement('div');
   el.className = 'float-char';
@@ -822,7 +1009,7 @@ function updateHUD() {
   }
   hudLevel.textContent = LEVELS[state.level].icon + ' ' + LEVELS[state.level].name;
   hudLevel.style.color = LEVELS[state.level].color;
-  hudSpeed.textContent = currentNoteSpeed().toFixed(1) + '×';
+  hudSpeed.textContent = currentNoteSpeed().toFixed(2) + '×';
   const total = state.correct + state.wrong;
   const acc = total > 0 ? Math.round(state.correct / total * 100) : 100;
   hudAcc.textContent = acc + '%';
@@ -840,7 +1027,6 @@ function loop(ts) {
   state.fieldW = fieldEl.clientWidth;
   state.fieldH = fieldEl.clientHeight;
 
-  // Спавн
   const cfg = LEVELS[state.level];
   state.spawnTimer += dt;
   const progress = Math.min(1, state.score / 800);
@@ -850,7 +1036,6 @@ function loop(ts) {
     spawnNote();
   }
 
-  // Движение нот
   const bottomLine = state.fieldH - 60;
 
   for (let i = state.notes.length - 1; i >= 0; i--) {
@@ -860,14 +1045,16 @@ function loop(ts) {
     n.el.style.top = n.y + 'px';
 
     if (n.y >= bottomLine) {
+      // НОТА УПАЛА — просто снимаем жизнь, без штрафа
       n.hit = true;
       n.el.remove();
       state.notes = state.notes.filter(x => x !== n);
       state.lives--;
       state.combo = 0;
-      state.wrong++;
+
       flash('bad');
       playTone(90, 0.35, 'sawtooth', 0.13);
+
       appEl.animate(
         [{ transform: 'translateX(0)' },
          { transform: 'translateX(-7px)' },
@@ -883,7 +1070,6 @@ function loop(ts) {
     }
   }
 
-  // Полоса тайминга
   let maxProg = 0;
   for (const n of state.notes) {
     if (n.hit) continue;
@@ -907,6 +1093,8 @@ function startGame() {
   state.maxCombo = 0;
   state.correct = 0;
   state.wrong = 0;
+  state.errorStreak = 0;
+  state.penalties = 0;
   state.notes.forEach(n => n.el.remove());
   state.notes = [];
   state.spawnTimer = 0;
@@ -917,6 +1105,7 @@ function startGame() {
   state.fieldW = fieldEl.clientWidth;
   state.fieldH = fieldEl.clientHeight;
 
+  updateErrorStreak();
   overlay.classList.add('hidden');
   updateHUD();
   ensureAudio();
@@ -928,6 +1117,7 @@ function endGame() {
   state.notes.forEach(n => n.el.remove());
   state.notes = [];
   timingFill.style.width = '0%';
+  errorStreakEl.classList.remove('show');
 
   const total = state.correct + state.wrong;
   const accuracy = total > 0 ? Math.round(state.correct / total * 100) : 100;
@@ -954,6 +1144,8 @@ function endGame() {
     <div id="finalStats">
       <div class="row"><span>Очки:</span> <span class="stat">${state.score.toLocaleString('ru-RU')}</span></div>
       <div class="row"><span>Верных:</span> <span class="stat">${state.correct} / ${total}</span></div>
+      <div class="row"><span>Ошибок:</span> <span class="stat red">${state.wrong}</span></div>
+      <div class="row"><span>Штрафов (−100):</span> <span class="stat red">${state.penalties}</span></div>
       <div class="row"><span>Точность:</span> <span class="stat">${accuracy}%</span></div>
       <div class="row"><span>Средняя точность удара:</span> <span class="stat gold">${avgHitAcc}%</span></div>
       <div class="row"><span>Макс. комбо:</span> <span class="stat gold">x${state.maxCombo}</span></div>
@@ -981,25 +1173,30 @@ function showMenu() {
       <span class="kbd">Shift</span>+клавиша — символы ·
       <span class="kbd">Esc</span> — выйти
     </p>
+    <p class="tiny" style="color:var(--danger); margin-top:8px;">
+      ⚠ 3 неверных нажатия подряд = штраф −100 очков<br>
+      ⚠ Пропущенная нота = минус жизнь (без штрафа)
+    </p>
     <p style="margin-top:20px; color:var(--muted);">Выбери уровень:</p>
     <div class="diff-grid">
       <div class="diff-card easy ${state.level === 'easy' ? 'selected' : ''}" data-level="easy">
         <div class="ico">🌱</div>
         <h3>ЛЁГКИЙ</h3>
-        <p>Только буквы<br>Медленно<br>5 жизней</p>
+        <p>Только буквы<br>Очень медленно<br>Нот мало<br>5 жизней</p>
       </div>
       <div class="diff-card medium ${state.level === 'medium' ? 'selected' : ''}" data-level="medium">
         <div class="ico">⚡</div>
         <h3>СРЕДНИЙ</h3>
-        <p>Буквы + цифры<br>Средняя скорость<br>4 жизни</p>
+        <p>Буквы + цифры<br>Медленно<br>Нот мало<br>4 жизни</p>
       </div>
       <div class="diff-card hard ${state.level === 'hard' ? 'selected' : ''}" data-level="hard">
         <div class="ico">🔥</div>
         <h3>СЛОЖНЫЙ</h3>
-        <p>+ символы ?!@#{}[]&lt;&gt;<br>Быстро<br>3 жизни</p>
+        <p>+ символы ?!@#{}[]&lt;&gt;<br>Умеренно<br>3 жизни</p>
       </div>
     </div>
     <button id="startBtn">НАЧАТЬ (ENTER)</button>
+    <button id="menuBtn" style="margin-top:12px; padding:12px 34px; font-size:15px; letter-spacing:3px; background:var(--card); color:var(--text); border:1px solid var(--border);">← В МЕНЮ ИГР</button>
   `;
   overlay.classList.remove('hidden');
 
@@ -1012,7 +1209,17 @@ function showMenu() {
   });
 
   document.getElementById('startBtn').onclick = startGame;
+  document.getElementById('menuBtn').onclick = goHome;
 }
+
+/* =========================================================
+   ПЕРЕХОД В МЕНЮ ИГР
+========================================================= */
+function goHome() {
+  window.location.href = 'index.html';
+}
+
+document.getElementById('menuHomeBtn').onclick = goHome;
 
 /* =========================================================
    ЗАПУСК
