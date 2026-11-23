@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Мой игровой хаб — 3 игры</title>
+<title>Мой игровой хаб — 4 игры</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -233,6 +233,31 @@
     50%     { transform: translateY(-12px) rotate(5deg); }
   }
 
+  /* === NEW: превью для Aliens Shooter === */
+  .preview-aliens {
+    background:
+      radial-gradient(circle at 25% 30%, rgba(125,255,107,0.35), transparent 40%),
+      radial-gradient(circle at 75% 65%, rgba(255,60,138,0.3), transparent 40%),
+      linear-gradient(180deg, #0f1c14, #05060f);
+  }
+  .preview-aliens .aliens {
+    display: flex;
+    gap: 8px;
+    font-size: 52px;
+  }
+  .preview-aliens .aliens span {
+    animation: aliensFloat 2.2s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px rgba(125,255,107,0.6));
+  }
+  .preview-aliens .aliens span:nth-child(1) { animation-delay: 0s; }
+  .preview-aliens .aliens span:nth-child(2) { animation-delay: 0.35s; }
+  .preview-aliens .aliens span:nth-child(3) { animation-delay: 0.7s; }
+  @keyframes aliensFloat {
+    0%,100% { transform: translateY(0) rotate(-6deg) scale(1); }
+    50%     { transform: translateY(-14px) rotate(6deg) scale(1.1); }
+  }
+  /* === /NEW === */
+
   .game-body {
     padding: 20px 22px 22px;
     flex: 1;
@@ -276,6 +301,9 @@
   .tag.mobile   { background: rgba(255,138,92,0.15); color: var(--orange); }
   .tag.music    { background: rgba(196,138,255,0.15); color: var(--purple); }
   .tag.fruit    { background: rgba(255,138,92,0.15); color: var(--orange); }
+  /* === NEW: тег для Aliens Shooter === */
+  .tag.levels   { background: rgba(125,255,107,0.15); color: #7dff6b; }
+  /* === /NEW === */
 
   .game-play {
     display: flex;
@@ -360,11 +388,12 @@
 
 <header>
   <h1>МОЙ ИГРОВОЙ ХАБ</h1>
-  <p>Три игры в одном месте. Кликай — и сразу играешь.</p>
+  <p>Четыре игры в одном месте. Кликай — и сразу играешь.</p>
   <div class="stats-top">
-    <span class="stat-pill">🎮 <b>3</b> игры</span>
+    <span class="stat-pill">🎮 <b>4</b> игры</span>
     <span class="stat-pill">⌨️ Тренажёры печати</span>
     <span class="stat-pill">🍉 Аркада</span>
+    <span class="stat-pill">👾 Шутер</span>
   </div>
 </header>
 
@@ -413,7 +442,7 @@ const GAMES = [
       { label: 'Все символы', cls: 'keyboard' },
       { label: 'Точность', cls: 'action' },
     ],
-    badge: 'NEW',
+    
   },
   {
     id: 'fruit',
@@ -432,6 +461,25 @@ const GAMES = [
     ],
     badge: null,
   },
+  /* === NEW: Битва против пришельцев === */
+  {
+    id: 'aliens',
+    file: 'Битва против пришельцев.html',
+    title: 'ALIENS SHOOTER',
+    subtitle: 'Битва против пришельцев — 40 уровней',
+    desc: 'Ты — последний защитник колонии. 11 видов пришельцев, 3 вида оружия, 40 уровней с боссами. WASD — движение, мышь — прицел, ЛКМ — огонь, R — перезарядка, 1/2/3 — оружие.',
+    previewClass: 'preview-aliens',
+    previewHTML: `<div class="aliens">
+      <span>👾</span><span>👽</span><span>🛸</span>
+    </div>`,
+    tags: [
+      { label: 'Экшен', cls: 'action' },
+      { label: 'Мышь + Клавиатура', cls: 'keyboard' },
+      { label: '40 уровней', cls: 'levels' },
+    ],
+    badge: 'NEW',
+  },
+  /* === /NEW === */
 ];
 
 /* ============================================================
